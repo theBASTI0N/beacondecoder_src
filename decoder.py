@@ -1,7 +1,10 @@
 import math
 from binascii import hexlify
 
+print("===================")
+print("theBASTI0N")
 print("beacondecoder: v0.5")
+print("===================")
 
 #inspired from https://github.com/Scrin/RuuviCollector
 def dewPoint(temperature, relativeHumidity):

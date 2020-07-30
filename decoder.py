@@ -1,5 +1,8 @@
 import math
 from binascii import hexlify
+
+print("beacondecoder: v0.5")
+
 #inspired from https://github.com/Scrin/RuuviCollector
 def dewPoint(temperature, relativeHumidity):
     v = math.log(relativeHumidity / 100 * equilibriumVaporPressure(temperature) / 611.2)
@@ -17,6 +20,12 @@ def equilibriumVaporPressure(temperature):
 def airDensity(temperature, relativeHumidity, pressure):
     return 1.2929 * 273.15 / (temperature + 273.15) * (pressure - 0.3783 * relativeHumidity / 100 * equilibriumVaporPressure(temperature)) / 101300
 
+#inspired from https://github.com/Scrin/RuuviCollector
+def angleBetweenVectorComponentAndAxis(vectorComponent, vectorLength):
+    if vectorComponent == None or vectorLength == None or vectorLength == 0:
+        return None
+    return math.degrees(math.acos(vectorComponent / vectorLength))
+
 def twos_complement(hexstr,bits):
      value = int(hexstr,16)
      if value & (1 << (bits-1)):
@@ -33,6 +42,7 @@ def decode(data):
         d = str(data)
         d = d[14:]
         temperature = twos_complement(d[2:6], 16) * 0.005
+        evp = equilibriumVaporPressure(temperature)
         humidity = int(d[6:10], 16) * 0.0025
         pressure = int(d[10:14], 16) + 50000
         pressure = pressure / 100
@@ -40,6 +50,9 @@ def decode(data):
         y = twos_complement(d[18:22], 16)/1000
         z = twos_complement(d[22:26], 16)/1000
         totalACC = math.sqrt(x * x + y * y + z * z)
+        angleX = angleBetweenVectorComponentAndAxis(x, totalACC)
+        angleY = angleBetweenVectorComponentAndAxis(y, totalACC)
+        angleZ = angleBetweenVectorComponentAndAxis(z, totalACC)
         power_bin = bin(int(d[26:30], 16))
         battery_voltage = ((int(power_bin[:13], 2)) + 1600) / 1000
         tx_power = int(power_bin[13:], 2) * 2 - 40
@@ -49,21 +62,24 @@ def decode(data):
         dP = dewPoint(temperature, humidity)
         airD = airDensity(temperature, humidity, pressure)
 
-        dMSG = {  'f' : format,
-                'temp' : temperature,
+        dMSG = {  'dataFormat' : format,
+                'temperature' : temperature,
                 'humidity' : humidity,
-                'x' : x, 'y' :y, 'z' : z,
-                'tAcc' : totalACC,
                 'pressure' : pressure,
-                'battery' : battery_voltage,
+                'equilibriumVaporPressure' : evp,
+                'accelerationX' : x, 'accelerationY' :y, 'accelerationZ' : z,
+                'accelerationAngleFromX' : angleX,
+                'accelerationAngleFromY' : angleY,
+                'accelerationAngleFromZ' : angleZ,
+                'accelerationTotal' : totalACC,
+                'batteryVoltage' : battery_voltage,
+                'dewPoint' : dP,
+                'absoluteHumidity' : aH,
+                'airDensity' : airD,
+                'tx' : tx_power,
                 'movementCounter' : mC,
                 'measurementSequence' : measureSeq,
-                'dewPoint' : dP,
-                'abHumidity' : aH,
-                'airDensity' : airD,
-                'tx' : tx_power
                 }
-
         return dMSG
     elif '990403' in data: #Ruuvi RAWv1
         format = 3
@@ -76,28 +92,36 @@ def decode(data):
             temperature = round(0 - temperature, 2)
         pressure = int(d[8:12], 16) + 50000
         pressure = pressure / 100
+        evp = equilibriumVaporPressure(temperature)
         x = twos_complement(d[12:16], 16)/1000
         y = twos_complement(d[16:20],16)/1000
         z = twos_complement(d[20:24], 16)/1000
         totalACC = math.sqrt(x * x + y * y + z * z)
+        angleX = angleBetweenVectorComponentAndAxis(x, totalACC)
+        angleY = angleBetweenVectorComponentAndAxis(y, totalACC)
+        angleZ = angleBetweenVectorComponentAndAxis(z, totalACC)
         battery_voltage = twos_complement(d[24:28], 16)/1000
         aH = absoluteHumidity(temperature, humidity)
         dP = dewPoint(temperature, humidity)
         airD = airDensity(temperature, humidity, pressure)
-        dMSG = {  'f' : format,
-                'temp' : temperature,
+        dMSG = {  'dataFormat' : format,
+                'temperature' : temperature,
                 'humidity' : humidity,
                 'pressure' : pressure,
-                'x' : x, 'y' :y, 'z' : z,
-                'tAcc' : totalACC,
-                'battery' : battery_voltage,
+                'equilibriumVaporPressure' : evp,
+                'accelerationX' : x, 'accelerationY' :y, 'accelerationZ' : z,
+                'accelerationAngleFromX' : angleX,
+                'accelerationAngleFromY' : angleY,
+                'accelerationAngleFromZ' : angleZ,
+                'accelerationTotal' : totalACC,
+                'batteryVoltage' : battery_voltage,
                 'dewPoint' : dP,
-                'abHumidity' : aH,
+                'absoluteHumidity' : aH,
                 'airDensity' : airD
                 }
         return dMSG
     elif 'AAFE2000' in data:
-        
+
         format = 1
         d = str(data)
         d = d.split("AAFE2000")[1]
@@ -108,16 +132,15 @@ def decode(data):
         advCnt = int(d[8:12], 16)
         secCnt = int(d[12:16], 16)
 
-        dMSG = {  'f' : format,
-                'temp' : temperature,
+        dMSG = {  'dataFormat' : format,
+                'temperature' : temperature,
                 'advCnt' : advCnt,
                 'secCnt' : secCnt,
-                'battery' :battery_voltage
+                'batteryVoltage' :battery_voltage
                 }
-
         return dMSG
     else:
-        dMSG = {  'f' : format
+        dMSG = {  'dataFormat' : format
                 }
 
         return dMSG

@@ -3,7 +3,7 @@ from binascii import hexlify
 
 print("===================")
 print("theBASTI0N")
-print("beacondecoder: v0.6.1")
+print("beacondecoder: v0.6.2")
 print("===================")
 
 #inspired from https://github.com/Scrin/RuuviCollector

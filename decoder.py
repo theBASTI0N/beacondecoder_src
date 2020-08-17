@@ -3,7 +3,7 @@ from binascii import hexlify
 
 print("===================")
 print("theBASTI0N")
-print("beacondecoder: v0.6")
+print("beacondecoder: v0.6.1")
 print("===================")
 
 #inspired from https://github.com/Scrin/RuuviCollector
@@ -84,10 +84,16 @@ def decode(data, ruuviPlus=False):
             angleZ = angleBetweenVectorComponentAndAxis(z, totalACC)
             if (angleX is not None):
                 dMSG['accelerationAngleFromX'] = angleX
+            else:
+                dMSG['accelerationAngleFromX'] = 0
             if (angleY is not None):
                 dMSG['accelerationAngleFromY'] = angleY
+            else:
+                dMSG['accelerationAngleFromY'] = 0
             if (angleZ is not None):
                 dMSG['accelerationAngleFromZ'] = angleZ
+            else:
+                dMSG['accelerationAngleFromZ'] = 0
 
         return dMSG
     elif '990403' in data: #Ruuvi RAWv1
@@ -130,10 +136,16 @@ def decode(data, ruuviPlus=False):
             angleZ = angleBetweenVectorComponentAndAxis(z, totalACC)
             if (angleX is not None):
                 dMSG['accelerationAngleFromX'] = angleX
+            else:
+                dMSG['accelerationAngleFromX'] = 0
             if (angleY is not None):
                 dMSG['accelerationAngleFromY'] = angleY
+            else:
+                dMSG['accelerationAngleFromY'] = 0
             if (angleZ is not None):
                 dMSG['accelerationAngleFromZ'] = angleZ
+            else:
+                dMSG['accelerationAngleFromZ'] = 0
 
         return dMSG
     elif 'AAFE2000' in data:

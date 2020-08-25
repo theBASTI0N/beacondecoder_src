@@ -84,7 +84,7 @@ def decode(data, ruuviPlus=False):
                 'accelerationX' : x, 'accelerationY' :y, 'accelerationZ' : z,
                 'accelerationTotal' : totalACC,
                 'batteryVoltage' : battery_voltage,
-                'tx' : tx_power,
+                'txPower' : tx_power,
                 'movementCounter' : mC,
                 'measurementSequence' : measureSeq,
                 }
@@ -203,7 +203,7 @@ def decode(data, ruuviPlus=False):
             advCnt = int(d[8:12], 16)
             secCnt = int(d[12:16], 16)
 
-            dMSG = {  'dataFormat' : format,
+            dMSG = {'dataFormat' : format,
                     'temperature' : temperature,
                     'advCnt' : advCnt,
                     'secCnt' : secCnt,

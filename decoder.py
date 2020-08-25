@@ -1,10 +1,29 @@
 import math
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
-print("===================")
-print("theBASTI0N")
-print("beacondecoder: v0.6.2")
-print("===================")
+URL_SCHEMES_PREFIXES = {
+    0: "http://www.",
+    1: "https://www.",
+    2: "http://",
+    3: "https://",
+}
+
+URL_TLD_PREFIXES = {
+    0: ".com/",
+    1: ".org/",
+    2: ".edu/",
+    3: ".net/",
+    4: ".info/",
+    5: ".biz/",
+    6: ".gov/",
+    7: ".com",
+    8: ".org",
+    9: ".edu",
+    10: ".net",
+    11: ".info",
+    12: ".biz",
+    13: ".gov",
+}
 
 #inspired from https://github.com/Scrin/RuuviCollector
 def dewPoint(temperature, relativeHumidity):
@@ -57,7 +76,7 @@ def decode(data, ruuviPlus=False):
         tx_power = int(power_bin[13:], 2) * 2 - 40
         mC = int(d[30:32], 16)
         measureSeq = int(d[32:36], 16)
-        
+
         dMSG = {'dataFormat' : format,
                 'temperature' : temperature,
                 'humidity' : humidity,
@@ -69,7 +88,7 @@ def decode(data, ruuviPlus=False):
                 'movementCounter' : mC,
                 'measurementSequence' : measureSeq,
                 }
-        
+
         if(ruuviPlus):
             evp = equilibriumVaporPressure(temperature)
             dMSG['equilibriumVaporPressure'] = evp
@@ -112,7 +131,7 @@ def decode(data, ruuviPlus=False):
         z = twos_complement(d[20:24], 16)/1000
         totalACC = math.sqrt(x * x + y * y + z * z)
         battery_voltage = twos_complement(d[24:28], 16)/1000
-       
+
         dMSG = {'dataFormat' : format,
                 'temperature' : temperature,
                 'humidity' : humidity,
@@ -121,7 +140,7 @@ def decode(data, ruuviPlus=False):
                 'accelerationTotal' : totalACC,
                 'batteryVoltage' : battery_voltage,
                 }
-        
+
         if(ruuviPlus):
             evp = equilibriumVaporPressure(temperature)
             dMSG['equilibriumVaporPressure'] = evp
@@ -148,27 +167,61 @@ def decode(data, ruuviPlus=False):
                 dMSG['accelerationAngleFromZ'] = 0
 
         return dMSG
-    elif 'AAFE2000' in data:
+    elif 'AAFE' in data:
+        #Eddystone
+        if "16AAFE00" in data:
+            # UID data
+            format = 10
+            d = str(data)
+            d = d.split("16AAFE00")[1]
+            namespace = d[2:22]
+            instance = d[22:34]
+            dMSG = {'dataFormat' : format, 'namespace' : namespace, 'instance' : instance}
+            return dMSG
+        elif '16AAFE10' in data:
+            # URL data
+            format = 11
+            d = str(data)
+            d = d.split("16AAFE10")[1]
+            start = URL_SCHEMES_PREFIXES[int(d[2:4], 16)]
+            body = unhexlify(d[4:-2])
+            for i in body:
+                start += chr(i)
+            end = URL_TLD_PREFIXES[int(d[-2:], 16)]
+            decodedUrl = start + end
+            dMSG = {'dataFormat' : format, 'url' : decodedUrl}
+            return dMSG
+        elif '16AAFE20' in data:
+            #TLM Data
+            format = 12
+            d = str(data)
+            d = d.split("AAFE2000")[1]
+            battery_voltage = int(d[1:4], 16) / 1000
+            temp1= twos_complement(d[4:6], 8)
+            temp2 = int(d[6:8], 16) / 256
+            temperature = temp1 + temp2
+            advCnt = int(d[8:12], 16)
+            secCnt = int(d[12:16], 16)
 
-        format = 1
+            dMSG = {  'dataFormat' : format,
+                    'temperature' : temperature,
+                    'advCnt' : advCnt,
+                    'secCnt' : secCnt,
+                    'batteryVoltage' :battery_voltage
+                    }
+            return dMSG
+    elif '4C000215' in data:
+        #iBeacon
+        format = 13
         d = str(data)
-        d = d.split("AAFE2000")[1]
-        battery_voltage = int(d[1:4], 16) / 1000
-        temp1= twos_complement(d[4:6], 8)
-        temp2 = int(d[6:8], 16) / 256
-        temperature = temp1 + temp2
-        advCnt = int(d[8:12], 16)
-        secCnt = int(d[12:16], 16)
-
-        dMSG = {  'dataFormat' : format,
-                'temperature' : temperature,
-                'advCnt' : advCnt,
-                'secCnt' : secCnt,
-                'batteryVoltage' :battery_voltage
-                }
-        return dMSG
+        d = d.split("4C000215")[1]
+        uuid = d[0:16]
+        major = d[16:20]
+        minor = d[20:24]
+        mRSSI = twos_complement(d[24:26], 8)
+        dMSG = {'dataFormat' : format, 'uuid' : uuid,
+                'major':  major, 'minor':  minor,
+                'rssi@1m' : mRSSI}
     else:
-        dMSG = {  'dataFormat' : format
-                }
-
+        dMSG = {'dataFormat' : format}
         return dMSG

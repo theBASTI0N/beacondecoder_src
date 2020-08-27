@@ -86,7 +86,7 @@ def decode(data, ruuviPlus=False):
                 'batteryVoltage' : battery_voltage,
                 'txPower' : tx_power,
                 'movementCounter' : mC,
-                'measurementSequence' : measureSeq,
+                'measurementSequenceNumber' : measureSeq,
                 }
 
         if(ruuviPlus):

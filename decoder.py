@@ -174,22 +174,29 @@ def decode(data, ruuviPlus=False):
             format = 10
             d = str(data)
             d = d.split("16AAFE00")[1]
+            mRSSI = twos_complement(d[0:2], 8)
             namespace = d[2:22]
             instance = d[22:34]
-            dMSG = {'dataFormat' : format, 'namespace' : namespace, 'instance' : instance}
+            dMSG = {'dataFormat' : format, 'rssi@0m' : mRSSI, 'namespace' : namespace, 'instance' : instance}
             return dMSG
         elif '16AAFE10' in data:
             # URL data
             format = 11
             d = str(data)
             d = d.split("16AAFE10")[1]
-            start = URL_SCHEMES_PREFIXES[int(d[2:4], 16)]
+            mRSSI = twos_complement(d[0:2], 8)
+            url = URL_SCHEMES_PREFIXES[int(d[2:4], 16)]
             body = unhexlify(d[4:-2])
             for i in body:
-                start += chr(i)
-            end = URL_TLD_PREFIXES[int(d[-2:], 16)]
-            decodedUrl = start + end
-            dMSG = {'dataFormat' : format, 'url' : decodedUrl}
+                url += chr(i)
+            try:
+                url = URL_TLD_PREFIXES[int(d[-2:], 16)]
+            except:
+                a = unhexlify(d[-2:])
+                for i in a:
+                    url += chr(i)
+            decodedUrl = url
+            dMSG = {'dataFormat' : format, 'rssi@0m' : mRSSI, 'url' : decodedUrl}
             return dMSG
         elif '16AAFE20' in data:
             #TLM Data

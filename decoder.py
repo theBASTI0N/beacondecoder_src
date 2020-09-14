@@ -131,9 +131,9 @@ def decode(data, ruuviPlus=False):
         battery_voltage = ((int(power_bin[:13], 2)) + 1600) / 1000
         tx_power = int(power_bin[13:], 2) * 2 - 40
         if (tx_power % 2) == 0:
-            door = False
+            door = 0    # 0 == Closed
         else:
-            door = True
+            door = 1    # 1 == Open
         mC = int(d[30:32], 16)
         measureSeq = int(d[32:36], 16)
 

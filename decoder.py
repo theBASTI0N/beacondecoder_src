@@ -59,7 +59,7 @@ def rshift(val, n):
 
 def decode(data, ruuviPlus=False):
     format = 0
-    if '990405' in data: #Ruuvi RAWv2
+    if '990405' in data or '990415' in data or '990416' in data: #Ruuvi RAWv2 and door variants
         format = 5
         d = str(data)
         d = d[14:]
@@ -114,66 +114,11 @@ def decode(data, ruuviPlus=False):
             else:
                 dMSG['accelerationAngleFromZ'] = 0
 
-        return dMSG
-    if '990415' in data: #Ruuvi RAWv2 plus door
-        format = 5
-        d = str(data)
-        d = d[14:]
-        temperature = twos_complement(d[2:6], 16) * 0.005
-        humidity = int(d[6:10], 16) * 0.0025
-        pressure = int(d[10:14], 16) + 50000
-        pressure = pressure / 100
-        x = twos_complement(d[14:18], 16)/1000
-        y = twos_complement(d[18:22], 16)/1000
-        z = twos_complement(d[22:26], 16)/1000
-        totalACC = math.sqrt(x * x + y * y + z * z)
-        power_bin = bin(int(d[26:30], 16))
-        battery_voltage = ((int(power_bin[:13], 2)) + 1600) / 1000
-        tx_power = int(power_bin[13:], 2) * 2 - 40
-        if (tx_power % 2) == 0:
-            door = 0    # 0 == Closed
-        else:
-            door = 1    # 1 == Open
-        mC = int(d[30:32], 16)
-        measureSeq = int(d[32:36], 16)
-
-        dMSG = {'dataFormat' : format,
-                'doorOpen' : door,
-                'temperature' : temperature,
-                'humidity' : humidity,
-                'pressure' : pressure,
-                'accelerationX' : x, 'accelerationY' :y, 'accelerationZ' : z,
-                'accelerationTotal' : totalACC,
-                'batteryVoltage' : battery_voltage,
-                'txPower' : tx_power,
-                'movementCounter' : mC,
-                'measurementSequenceNumber' : measureSeq,
-                }
-
-        if(ruuviPlus):
-            evp = equilibriumVaporPressure(temperature)
-            dMSG['equilibriumVaporPressure'] = evp
-            aH = absoluteHumidity(temperature, humidity)
-            dMSG['absoluteHumidity'] = aH
-            dP = dewPoint(temperature, humidity)
-            dMSG['dewPoint'] = dP
-            airD = airDensity(temperature, humidity, pressure)
-            dMSG['airDensity'] = airD
-            angleX = angleBetweenVectorComponentAndAxis(x, totalACC)
-            angleY = angleBetweenVectorComponentAndAxis(y, totalACC)
-            angleZ = angleBetweenVectorComponentAndAxis(z, totalACC)
-            if (angleX is not None):
-                dMSG['accelerationAngleFromX'] = angleX
-            else:
-                dMSG['accelerationAngleFromX'] = 0
-            if (angleY is not None):
-                dMSG['accelerationAngleFromY'] = angleY
-            else:
-                dMSG['accelerationAngleFromY'] = 0
-            if (angleZ is not None):
-                dMSG['accelerationAngleFromZ'] = angleZ
-            else:
-                dMSG['accelerationAngleFromZ'] = 0
+        # Ruuvi RAWv2 Door Open
+        if '990415' in data:
+            dMSG['doorOpen'] = 0   # 0 == Closed
+        if '990416' in data:
+            dMSG['doorOpen'] = 1    # 1 == Open
 
         return dMSG
     elif '990403' in data: #Ruuvi RAWv1

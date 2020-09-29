@@ -195,9 +195,9 @@ def decode(data, ruuviPlus=False):
             for i in body:
                 url += chr(i)
             try:
-                url = URL_TLD_PREFIXES[int(d[-2:], 16)]
+                url += URL_TLD_PREFIXES[int(d[-2:], 16)]
             except:
-                a = unhexlify(d[-2:])
+                a += unhexlify(d[-2:])
                 for i in a:
                     url += chr(i)
             decodedUrl = url
